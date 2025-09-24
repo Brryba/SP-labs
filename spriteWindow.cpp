@@ -53,7 +53,7 @@ LRESULT CALLBACK ScreensaverWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             POINT pt;
             GetCursorPos(&pt);
             if (lastMouse.x == -1 && lastMouse.y == -1) {
-                lastMouse = pt; // инициализация
+                lastMouse = pt;
             } else if (pt.x != lastMouse.x || pt.y != lastMouse.y) {
                 DestroyWindow(hwnd);
             }
@@ -91,7 +91,7 @@ void showSpriteWindow(HINSTANCE hInst, HWND hParent) {
     GetClientRect(hParent, &rc);
 
     HWND hwnd = CreateWindowEx(
-            WS_EX_TOPMOST, // Поверх всех окон
+            WS_EX_TOPMOST,
             CLASS_NAME,
             "Screensaver",
             WS_POPUP,
