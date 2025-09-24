@@ -1,5 +1,5 @@
 #include "aboutDialog.h"
-#include "../resource.h"
+#include "../resource/resource.h"
 
 INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
@@ -16,9 +16,8 @@ INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
     return FALSE;
 }
 
-void ShowAboutDialog(HWND hwndParent) {
-    extern HINSTANCE currentInstance; // берём из main.cpp
-    DialogBox(currentInstance, MAKEINTRESOURCE(IDD_ABOUTBOX), hwndParent, AboutDlgProc);
+void ShowAboutDialog(HWND hwndParent, HINSTANCE instance) {
+    DialogBox(instance, MAKEINTRESOURCE(IDD_ABOUTBOX), hwndParent, AboutDlgProc);
 }
 
 void PaintMainWindow(HWND hwnd) {

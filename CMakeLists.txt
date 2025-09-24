@@ -3,8 +3,8 @@ project(SP)
 
 set(CMAKE_CXX_STANDARD 26)
 
-add_executable(SP main.cpp resource.rc
-        spriteWindow.cpp
+add_executable(SP main.cpp resource/resource.rc
+        window/spriteWindow.cpp
         utils/timerUtils.h
         utils/timerUtils.cpp
         dialog/aboutDialog.cpp)

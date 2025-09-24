@@ -1,8 +1,8 @@
 #include <windows.h>
-#include "resource.h"
+#include "resource/resource.h"
 #include "utils/timerUtils.h"
 #include "dialog/aboutDialog.h"
-#include "spriteWindow.h"
+#include "window/spriteWindow.h"
 
 static HINSTANCE currentInstance;
 
@@ -21,7 +21,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case ID_HELP_ABOUT:
-                    ShowAboutDialog(hwnd);
+                    ShowAboutDialog(hwnd, currentInstance);
                     break;
             }
             break;
