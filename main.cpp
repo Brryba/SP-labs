@@ -3,7 +3,7 @@
 #include "spriteWindow.h"
 
 #define INACTIVITY_TIMER 1
-#define INACTIVITY_TIMEOUT 3000
+#define INACTIVITY_TIMEOUT 30000
 
 HINSTANCE currentInstance;
 
@@ -56,6 +56,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             KillTimer(hwnd, INACTIVITY_TIMER);
             SetTimer(hwnd, INACTIVITY_TIMER, INACTIVITY_TIMEOUT, NULL);
             break;
+        case WM_SPRITE_CLOSED:
+            SetTimer(hwnd, INACTIVITY_TIMER, INACTIVITY_TIMEOUT, NULL);
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
