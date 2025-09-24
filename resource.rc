@@ -1,0 +1,36 @@
+#include "resource.h"
+#include <windows.h>
+
+IDR_MAINMENU
+MENU
+        BEGIN
+POPUP "File"
+BEGIN
+        MENUITEM
+"Open", ID_FILE_OPEN
+MENUITEM "Save", ID_FILE_SAVE
+MENUITEM "Exit", ID_FILE_EXIT
+END
+        POPUP
+"Edit"
+BEGIN
+        MENUITEM
+"Cut", ID_EDIT_CUT
+MENUITEM "Copy", ID_EDIT_COPY
+MENUITEM "Paste", ID_EDIT_PASTE
+END
+        POPUP
+"Info"
+BEGIN
+        MENUITEM
+"About program", ID_HELP_ABOUT
+END
+        END
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 180, 100
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About program"
+BEGIN
+        DEFPUSHBUTTON   "OK", IDOK, 65, 70, 50, 14
+CTEXT           "Text editor\nMade by Yury Brazgunou from 351003 for System Programming", -1, 10, 15, 160, 24
+END

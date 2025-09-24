@@ -3,4 +3,5 @@ project(SP)
 
 set(CMAKE_CXX_STANDARD 26)
 
-add_executable(SP main.cpp)
+add_executable(SP main.cpp resource.rc
+        spriteWindow.cpp)
