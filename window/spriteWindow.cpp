@@ -3,7 +3,7 @@
 #define SPRITE_REPOSITION_TIMEOUT 2
 #define SPRITE_SIZE 50
 #define TIMER_INTERVAL 30
-#define MOVE_STEP 10
+#define MOVE_STEP 5
 
 static HWND g_hParentWnd = NULL;
 static int spriteCurrentX = 100, spriteCurrentY = 100;
@@ -28,16 +28,33 @@ static void PaintSprite(HWND hwnd) {
 
     RECT rc;
     GetClientRect(hwnd, &rc);
+    int width = rc.right - rc.left;
+    int height = rc.bottom - rc.top;
+    HDC memDC = CreateCompatibleDC(hdc);
+    HBITMAP memBitmap = CreateCompatibleBitmap(hdc, width, height);
+    HGDIOBJ oldBitmap = SelectObject(memDC, memBitmap);
 
-    FillRect(hdc, &rc, (HBRUSH) GetStockObject(BLACK_BRUSH));
+    FillRect(memDC, &rc, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
     HBRUSH hBrush = CreateSolidBrush(RGB(0, 255, 0));
-    RECT spriteRect = {spriteCurrentX, spriteCurrentY, spriteCurrentX + SPRITE_SIZE, spriteCurrentY + SPRITE_SIZE};
-    FillRect(hdc, &spriteRect, hBrush);
+    RECT spriteRect = {
+            spriteCurrentX,
+            spriteCurrentY,
+            spriteCurrentX + SPRITE_SIZE,
+            spriteCurrentY + SPRITE_SIZE
+    };
+    FillRect(memDC, &spriteRect, hBrush);
     DeleteObject(hBrush);
+
+    BitBlt(hdc, 0, 0, width, height, memDC, 0, 0, SRCCOPY);
+
+    SelectObject(memDC, oldBitmap);
+    DeleteObject(memBitmap);
+    DeleteDC(memDC);
 
     EndPaint(hwnd, &ps);
 }
+
 
 static void MoveSpriteByKey(HWND hwnd, WPARAM key) {
     RECT rc;
