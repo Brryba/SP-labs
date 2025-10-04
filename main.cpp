@@ -33,6 +33,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         case WM_SPRITE_CLOSED:
             StartInactivityTimer(hwnd);
+            ShowCursor(TRUE);
             break;
         case WM_DESTROY:
             PostQuitMessage(0);
