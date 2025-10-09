@@ -1,29 +1,29 @@
 #include "resource.h"
 #include <windows.h>
 
-IDR_MAINMENU
-MENU
+IDR_MAINMENU MENU
         BEGIN
 POPUP "File"
 BEGIN
-        MENUITEM
-"Open", ID_FILE_OPEN
+        MENUITEM "Open", ID_FILE_OPEN
 MENUITEM "Save", ID_FILE_SAVE
 MENUITEM "Exit", ID_FILE_EXIT
 END
-        POPUP
-"Edit"
+        POPUP "Edit"
 BEGIN
-        MENUITEM
-"Cut", ID_EDIT_CUT
+        MENUITEM "Cut", ID_EDIT_CUT
 MENUITEM "Copy", ID_EDIT_COPY
 MENUITEM "Paste", ID_EDIT_PASTE
 END
-        POPUP
-"Info"
+        POPUP "Font"
 BEGIN
-        MENUITEM
-"About program", ID_HELP_ABOUT
+        MENUITEM "Fixedsys", FIXEDSYS_FONT
+MENUITEM "Arial",  ARIAL_FONT
+MENUITEM "Courier New", COURIER_NEW_FONT
+END
+        POPUP "Info"
+BEGIN
+        MENUITEM "About program", ID_HELP_ABOUT
 END
         END
 
