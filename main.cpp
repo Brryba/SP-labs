@@ -3,6 +3,11 @@
 #include "utils/timerUtils.h"
 #include "dialog/aboutDialog.h"
 #include "window/spriteWindow.h"
+#include <algorithm>
+#include <commdlg.h> // ДОБАВЛЕНО: Для диалога открытия файла (GetOpenFileName)
+
+#define MIN_WINDOW_WIDTH 500
+#define MIN_WINDOW_HEIGHT 400
 
 static HINSTANCE currentInstance;
 static HWND hEdits[3][3];
@@ -12,7 +17,9 @@ static HFONT hCurrentFont = NULL;
 void ApplyFontToControls(HFONT hNewFont) {
     for (int row = 0; row < 3; ++row) {
         for (int col = 0; col < 3; ++col) {
-            SendMessage(hEdits[row][col], WM_SETFONT, (WPARAM) hNewFont, TRUE);
+            if (hEdits[row][col]) {
+                SendMessage(hEdits[row][col], WM_SETFONT, (WPARAM) hNewFont, TRUE);
+            }
         }
     }
 }
@@ -55,6 +62,118 @@ HFONT CreateApplicationFont(int fontId) {
     }
 }
 
+// ДОБАВЛЕНО: Функция для обработки открытия файла и заполнения ячеек
+void HandleFileOpen(HWND hwnd) {
+    OPENFILENAMEA ofn; // A-версия (ANSI) для работы с char* и байтами
+    CHAR szFile[MAX_PATH] = {0}; // Буфер для имени файла
+
+    // Инициализируем структуру
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = szFile; // Указываем на наш буфер
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "All Files (*.*)\0*.*\0Text Files (*.txt)\0*.txt\0"; // Фильтры
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST; // Файл должен существовать
+
+    // Показываем диалог. Используем A-версию.
+    if (GetOpenFileNameA(&ofn) == TRUE) {
+        // Пользователь выбрал файл, открываем его
+        HANDLE hFile = CreateFileA(ofn.lpstrFile, // A-версия
+                                   GENERIC_READ,
+                                   FILE_SHARE_READ,
+                                   NULL,
+                                   OPEN_EXISTING,
+                                   FILE_ATTRIBUTE_NORMAL,
+                                   NULL);
+
+        if (hFile == INVALID_HANDLE_VALUE) {
+            MessageBoxA(hwnd, "Cannot open file.", "Error", MB_OK | MB_ICONERROR);
+            return;
+        }
+
+        // Получаем размер файла
+        DWORD dwFileSize = GetFileSize(hFile, NULL);
+        if (dwFileSize == INVALID_FILE_SIZE) {
+            MessageBoxA(hwnd, "Cannot get file size.", "Error", MB_OK | MB_ICONERROR);
+            CloseHandle(hFile);
+            return;
+        }
+
+        // Если файл пустой, просто очищаем ячейки
+        if (dwFileSize == 0) {
+            for (int row = 0; row < 3; ++row) {
+                for (int col = 0; col < 3; ++col) {
+                    SetWindowTextA(hEdits[row][col], "");
+                }
+            }
+            CloseHandle(hFile);
+            return;
+        }
+
+        // Выделяем память (буфер) под содержимое файла
+        CHAR* pBuffer = (CHAR*)HeapAlloc(GetProcessHeap(), 0, dwFileSize);
+        if (pBuffer == NULL) {
+            MessageBoxA(hwnd, "Memory allocation failed.", "Error", MB_OK | MB_ICONERROR);
+            CloseHandle(hFile);
+            return;
+        }
+
+        // Читаем файл в буфер
+        DWORD dwBytesRead = 0;
+        if (!ReadFile(hFile, pBuffer, dwFileSize, &dwBytesRead, NULL) || dwBytesRead != dwFileSize) {
+            MessageBoxA(hwnd, "Failed to read file.", "Error", MB_OK | MB_ICONERROR);
+            HeapFree(GetProcessHeap(), 0, pBuffer);
+            CloseHandle(hFile);
+            return;
+        }
+
+        // Файл больше не нужен
+        CloseHandle(hFile);
+
+        // Распределяем данные по 9 ячейкам
+        DWORD chunkSize = dwFileSize / 9; // Размер для одной ячейки
+        DWORD currentOffset = 0;
+
+        for (int row = 0; row < 3; ++row) {
+            for (int col = 0; col < 3; ++col) {
+                int cellIndex = row * 3 + col;
+                DWORD currentChunkSize;
+
+                if (cellIndex == 8) {
+                    // Последняя ячейка забирает все, что осталось
+                    currentChunkSize = dwFileSize - currentOffset;
+                } else {
+                    currentChunkSize = chunkSize;
+                }
+
+                // Выделяем временный буфер для ячейки (+1 для нуль-терминатора \0)
+                CHAR* cellBuffer = (CHAR*)HeapAlloc(GetProcessHeap(), 0, currentChunkSize + 1);
+                if (cellBuffer) {
+                    // Копируем кусок данных из основного буфера
+                    memcpy(cellBuffer, pBuffer + currentOffset, currentChunkSize);
+
+                    // Ставим \0, так как SetWindowTextA ожидает C-строку
+                    cellBuffer[currentChunkSize] = '\0';
+
+                    // Устанавливаем текст (A-версия)
+                    // Байты будут интерпретированы как ANSI-символы
+                    SetWindowTextA(hEdits[row][col], cellBuffer);
+
+                    // Освобождаем временный буфер ячейки
+                    HeapFree(GetProcessHeap(), 0, cellBuffer);
+                }
+
+                currentOffset += currentChunkSize; // Сдвигаем смещение
+            }
+        }
+
+        // Освобождаем основной буфер
+        HeapFree(GetProcessHeap(), 0, pBuffer);
+    }
+}
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
@@ -64,8 +183,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 for (int col = 0; col < 3; ++col) {
                     hEdits[row][col] = CreateWindowEx(
                             WS_EX_CLIENTEDGE, "EDIT", "",
+                            // ИЗМЕНЕНО: Убран ES_AUTOHSCROLL, оставлен только ES_AUTOVSCROLL
                             WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_WANTRETURN |
-                            ES_AUTOVSCROLL | ES_AUTOHSCROLL,
+                            ES_AUTOVSCROLL,
                             0, 0, 0, 0, hwnd,
                             (HMENU) (1000 + row * 3 + col),
                             ((LPCREATESTRUCT) lParam)->hInstance, NULL);
@@ -95,6 +215,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         }
 
+        case WM_GETMINMAXINFO: {
+            LPMINMAXINFO pMMI = (LPMINMAXINFO)lParam;
+            pMMI->ptMinTrackSize.x = MIN_WINDOW_WIDTH;
+            pMMI->ptMinTrackSize.y = MIN_WINDOW_HEIGHT;
+            break;
+        }
+
         case WM_PAINT:
             PaintMainWindow(hwnd);
             break;
@@ -110,6 +237,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
 
             switch (LOWORD(wParam)) {
+                // ДОБАВЛЕНО: Обработка нажатия на ID_FILE_OPEN
+                case ID_FILE_OPEN:
+                    HandleFileOpen(hwnd); // Вызываем нашу новую функцию
+                    break;
+
                 case ID_HELP_ABOUT:
                     ShowAboutDialog(hwnd, currentInstance);
                     break;
@@ -119,18 +251,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 case COURIER_NEW_FONT: {
                     if (hCurrentFont) {
                         DeleteObject(hCurrentFont);
-                        hCurrentFont = NULL;
                     }
 
-                    HFONT hNewFont = NULL;
                     int commandId = LOWORD(wParam);
-                    hNewFont = CreateApplicationFont(commandId);
+                    hCurrentFont = CreateApplicationFont(commandId);
 
-                    if (hNewFont) {
-                        if (commandId != FIXEDSYS_FONT) {
-                            hCurrentFont = hNewFont;
-                        }
-                        ApplyFontToControls(hNewFont);
+                    if (hCurrentFont) {
+                        ApplyFontToControls(hCurrentFont);
                     }
                     break;
                 }
@@ -151,7 +278,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
 
         case WM_DESTROY: {
-            DeleteObject(hCurrentFont);
+            if (hCurrentFont) {
+                DeleteObject(hCurrentFont);
+            }
             PostQuitMessage(0);
             return 0;
         }
